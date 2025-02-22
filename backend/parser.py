@@ -1,67 +1,119 @@
+import json
+import openai
 import pdfplumber
-import docx
-import openai  # Import OpenAI for AI-based feedback
-import os
+import spacy
 
-# Function to extract text from PDF
+openai.api_key = "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"
+
+# Load the English NLP model
+nlp = spacy.load("en_core_web_sm")
+
+# Function to extract plain text from a PDF
 def extract_text_from_pdf(pdf_path):
-    text = ""
     with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() + "\n"
-    return text.strip()
+        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
 
-# Function to extract text from DOCX
-def extract_text_from_docx(docx_path):
-    doc = docx.Document(docx_path)
-    return "\n".join([para.text for para in doc.paragraphs])
+    # Ensure proper UTF-8 encoding
+    return text.encode("utf-8", "ignore").decode("utf-8", "ignore")
 
-# Determine file type and extract text
-def extract_resume_text(file_path):
-    if file_path.endswith(".pdf"):
-        return extract_text_from_pdf(file_path)
-    elif file_path.endswith(".docx"):
-        return extract_text_from_docx(file_path)
-    else:
-        raise ValueError("Unsupported file format. Use PDF or DOCX.")
+# Function to extract key skills and keywords using spaCy
+def extract_keywords(text):
+    doc = nlp(text)
+    keywords = set()
 
-# AI-Powered Resume Analysis
-# AI-Powered Resume Analysis (Updated OpenAI API)
-import openai
+    for token in doc:
+        if token.pos_ in ["NOUN", "PROPN"]:
+            keywords.add(token.text.lower())
 
-# AI-Powered Resume Analysis (Fixed for OpenAI API v1.0+)
-import openai
+    return list(keywords)
 
-# AI-Powered Resume Analysis (Updated for GPT-3.5)
-def analyze_resume(text):
-    openai.api_key = "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"  # Replace with your actual API key
+def analyze_resume(text, job_category):
+    """Sends resume text to AI and returns an optimized version."""
+    
+    if not text.strip():
+        return {"error": "Resume text is empty or could not be extracted."}
 
-    prompt = f"""
-    You are an AI career advisor reviewing a resume. Provide feedback on:
-    - Overall structure
-    - Clarity and conciseness
-    - Missing skills or sections
-    - Suggestions to improve
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an AI resume expert. Your job is to analyze resumes and optimize them strictly in JSON format."},
+                {"role": "user", "content": f"""
+                Here is a resume:
+                {text}
 
-    Resume text:
-    {text}
-    """
+                Optimize this resume for a '{job_category}' position.
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # Changed back (nvm)
-        messages=[
-            {"role": "system", "content": "You are a resume reviewer providing expert feedback."},
-            {"role": "user", "content": prompt}
-        ]
-    )
+                **Return the response ONLY as a valid JSON object** with these fields:
+                - "optimized_resume" (string): The fully rewritten resume in a professional format.
+                - "overall_score" (integer): A rating from 1 to 10.
+                - "strengths" (list): Key strengths of the resume.
+                - "improvements" (list): Areas that need improvement.
+                - "actionable_changes" (list): Specific action points to improve the resume.
 
-    return response["choices"][0]["message"]["content"]
+                **IMPORTANT:**
+                - DO NOT return text explanations, only JSON.
+                - DO NOT return Markdown or code blocks.
+                - The "optimized_resume" should be a string, formatted as a real resume.
+                """}
+            ]
+        )
 
+        raw_response = response["choices"][0]["message"]["content"]
+        feedback_json = json.loads(raw_response)
+
+    except json.JSONDecodeError:
+        feedback_json = {"error": "AI response formatting issue."}
+
+    return feedback_json
+
+# Run the program
 if __name__ == "__main__":
-    test_resume = "data/sample_resume.pdf"  # Use the sample resume
-    resume_text = extract_resume_text(test_resume)
-    print("Extracted Resume Text:\n", resume_text)
+    test_resume = "data/sample_resume.pdf"
+    resume_text = extract_text_from_pdf(test_resume)
+    ai_feedback = analyze_resume(resume_text, "Project Management")
+    print("\n✅ AI Feedback:\n", ai_feedback)
 
-    # Analyze the resume with AI
-    ai_feedback = analyze_resume(resume_text)
-    print("\nAI Feedback:\n", ai_feedback)
+    if "optimized_resume" in ai_feedback:
+        optimized_resume = ai_feedback["optimized_resume"]
+
+        # Check if it's already a string
+        if isinstance(optimized_resume, str):
+            print("\n✅ Optimized Resume:\n")
+            print(optimized_resume)
+        else:
+            # If it's still a dictionary (unlikely at this stage), format it manually
+            formatted_resume = """
+            {name}
+            {contact_info}
+
+            Objective:
+            {objective}
+
+            Experience:
+            {experience}
+
+            Skills:
+            {skills}
+
+            Education:
+            {education}
+            """.format(
+                name=optimized_resume.get('name', ''),
+                contact_info=optimized_resume.get('contact_information', ''),
+                objective=optimized_resume.get('objective', ''),
+                experience="\n".join([
+                    f"- {exp['role']} at {exp['company']} ({exp['duration']}, {exp['location']})\n  {exp['description']}"
+                    for exp in optimized_resume.get('experiences', [])
+                ]),
+                skills=", ".join(optimized_resume.get('skills', [])),
+                education="\n".join([
+                    f"- {edu.get('degree', 'Unknown Degree')} from {edu.get('institution', 'Unknown Institution')} ({edu.get('date', 'Unknown Date')})\n Achievements: {', '.join(edu.get('achievements', []))}"
+                    for edu in optimized_resume.get('education', [])
+                ])
+            )
+
+            print(formatted_resume)
+
+    else:
+        print("\n❌ No optimized resume was generated. Check the AI response formatting.")
