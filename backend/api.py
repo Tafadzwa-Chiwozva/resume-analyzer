@@ -35,6 +35,7 @@ def upload_file():
             # Generate optimized PDF
             optimized_filename = f"optimized_{filename}"
             optimized_file_path = os.path.join(app.config['PROCESSED_FOLDER'], optimized_filename)
+            print(f"Generating PDF at: {optimized_file_path}")
             generate_pdf(optimized_text, optimized_file_path)
             
             return jsonify({"message": "File uploaded and processed", "download_url": f"/download/{optimized_filename}"}), 200
@@ -64,6 +65,7 @@ def generate_pdf(text, file_path):
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(0, 10, text)
     pdf.output(file_path)
+    print(f"PDF generated at: {file_path}")
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
