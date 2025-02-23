@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import os
-from parser import extract_resume_text, analyze_resume  # Import AI functions
+from parser import extract_text_from_pdf, analyze_resume  # Import AI functions
 
 app = Flask(__name__)
 
@@ -25,8 +25,9 @@ def upload_file():
 
     # Extract text from resume
     try:
-        extracted_text = extract_resume_text(file_path)
-        ai_feedback = analyze_resume(extracted_text)  # Call AI function
+        extracted_text = extract_text_from_pdf(file_path)  # Correct function name
+        job_category = request.form.get('job_category', 'General')
+        ai_feedback = analyze_resume(extracted_text, job_category)  # Call AI function
         return jsonify({
             "filename": file.filename,
             "extracted_text": extracted_text,

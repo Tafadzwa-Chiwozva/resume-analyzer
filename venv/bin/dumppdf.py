@@ -1,4 +1,4 @@
-#!/Users/taffychiwozva/resume-analyzer/venv/bin/python3.9
+#!/Users/taffychiwozva/Desktop/resume-analyzer/venv/bin/python3.11
 """Extract pdf structure in XML format"""
 import logging
 import os.path
