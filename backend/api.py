@@ -49,21 +49,54 @@ def download_file(filename):
     return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 def generate_pdf(text, file_path):
-    # Replace unsupported characters
-    text = text.replace('\u2022', '-')  # Replace bullet points with hyphens
-    # Add more replacements if needed
-
-    # Ensure the text is properly encoded
-    text = text.encode('latin-1', 'replace').decode('latin-1')
-
-    # Print the text content for debugging
-    print("Text content to be added to PDF:")
-    print(text)
-
     pdf = FPDF()
     pdf.add_page()
+    
+    # Set up fonts
+    pdf.set_font("Arial", size=16, style='B')
+    
+    # Extract sections from the text
+    sections = text.split('\n\n')
+    
+    # Header
+    header = sections[0].split('\n')
+    name = header[0] if len(header) > 0 else "Name"
+    contact_info = header[1] if len(header) > 1 else "Contact Info"
+    linkedin = header[2] if len(header) > 2 else "LinkedIn"
+    github = header[3] if len(header) > 3 else "GitHub"
+    
+    # Centered Header
+    pdf.cell(0, 10, name, ln=True, align='C')
     pdf.set_font("Arial", size=12)
-    pdf.multi_cell(0, 10, text)
+    pdf.cell(0, 10, contact_info, ln=True, align='C')
+    pdf.cell(0, 10, linkedin, ln=True, align='C')
+    pdf.cell(0, 10, github, ln=True, align='C')
+    
+    # Add a line break
+    pdf.ln(10)
+    
+    # Process each section
+    for section in sections[1:]:
+        lines = section.split('\n')
+        title = lines[0]
+        
+        # Bold section title
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.cell(0, 10, title, ln=True)
+        
+        # Regular text for content
+        pdf.set_font("Arial", size=12)
+        for line in lines[1:]:
+            if line.startswith('-'):
+                pdf.cell(10)  # Indent bullet points
+                pdf.multi_cell(0, 10, line)
+            else:
+                pdf.multi_cell(0, 10, line)
+        
+        # Add a line break between sections
+        pdf.ln(5)
+    
+    # Output the PDF to the specified file path
     pdf.output(file_path)
     print(f"PDF generated at: {file_path}")
 
