@@ -93,13 +93,17 @@ def match_content_to_template(extracted_text):
     """Ensure proper section headers and structure without reference resume content."""
     sections = extracted_text.split('\n\n')
 
-    # Expected section mappings
+    # Expected section mappings (excluding "Contact Information")
     section_titles = [
-        "Contact Information", "Summary", "Experience", "Education", "Skills", "Projects", "Certifications", "Activities"
+        "Summary", "Experience", "Education", "Skills", "Projects", "Certifications", "Activities"
     ]
 
     matched_content = {}
     for i, section in enumerate(sections):
+        # Skip redundant name and contact details
+        if "4567 Main Street" in section or "janna@example.com" in section:
+            continue
+
         section_title = section_titles[i] if i < len(section_titles) else f"Additional Info"
         matched_content[section_title] = section.strip()
 
@@ -109,29 +113,90 @@ def generate_final_pdf(matched_content, output_filename):
     """Generate a PDF using WeasyPrint with formatted sections and blue headings, ensuring a one-page layout."""
     final_output_path = os.path.abspath(os.path.join(PROCESSED_FOLDER, output_filename))
     
-    html_content = """
+    html_content = f"""
     <html>
     <head>
         <style>
-            body { font-family: Arial, sans-serif; font-size: 10px; margin: 30px; }
-            h1 { font-size: 16px; font-weight: bold; text-align: center; color: #002060; margin-bottom: 5px; }
-            h2 { font-size: 14px; font-weight: bold; color: #002060; border-bottom: 2px solid #002060; margin-top: 10px; padding-bottom: 3px; }
-            p { font-size: 10px; color: #333; margin-bottom: 4px; }
-            ul { list-style-type: disc; margin-left: 15px; }
-            li { font-size: 10px; color: #333; }
-            .section { margin-bottom: 10px; }
-            .bold { font-weight: bold; }
-            .blue { color: #002060; }
-            hr { border: 1px solid #002060; margin: 8px 0; }
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                padding: 10px;
+            }}
+            .header {{
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                color: #002060;
+                margin-bottom: 5px;
+            }}
+            .contact {{
+                display: flex;
+                justify-content: space-between;
+                font-size: 10px;
+                color: #333;
+                margin-bottom: 10px;
+            }}
+            h2 {{
+                font-size: 14px;
+                font-weight: bold;
+                color: #002060;
+                border-bottom: 2px solid #002060;
+                padding-bottom: 5px;
+                margin-top: 10px;
+            }}
+            p {{
+                font-size: 10px;
+                color: #333;
+                margin: 2px 0;
+            }}
+            ul {{
+                list-style-type: disc;
+                margin-left: 15px;
+            }}
+            li {{
+                font-size: 10px;
+                color: #333;
+            }}
+            .section {{
+                margin-bottom: 5px;
+            }}
+            .bold {{
+                font-weight: bold;
+            }}
+            .blue {{
+                color: #002060;
+            }}
+            hr {{
+                border: 1px solid #002060;
+                margin: 5px 0;
+            }}
         </style>
     </head>
     <body>
+
+        <!-- Header with Name -->
+        <div class="header">Janna Gardner</div>
+
+        <!-- Contact Information -->
+        <div class="contact">
+            <div>4567 Main Street, Chicago, Illinois 98052</div>
+            <div>(716) 555-0100 • janna@example.com</div>
+        </div>
+        <hr>
+
     """
 
-    # Header
-    html_content += f"<h1>Optimized Resume</h1>"
+    # Add sections dynamically, ensuring they fit within one page
+    total_content_length = 0
+    max_length = 5000  # Approximate character limit to fit one page
 
     for section_title, section_content in matched_content.items():
+        if total_content_length > max_length:
+            break  # Stop adding content if we exceed one page
+
+        section_content = section_content[: max_length - total_content_length]  # Trim if necessary
+        total_content_length += len(section_content)
+
         html_content += f"<div class='section'><h2>{section_title}</h2><hr>"  
         for line in section_content.split('\n'):
             if line.startswith('-'):
@@ -145,8 +210,8 @@ def generate_final_pdf(matched_content, output_filename):
     </html>
     """
 
-    # Generate the PDF
-    HTML(string=html_content).write_pdf(final_output_path)
+    # Save PDF with a one-page limit
+    HTML(string=html_content).write_pdf(final_output_path, stylesheets=None, presentational_hints=True)
     return final_output_path
 
 if __name__ == '__main__':
