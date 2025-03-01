@@ -1,0 +1,10 @@
+body { font-family: Arial, sans-serif; }
+h1 { font-size: 22px; font-weight: bold; text-align: center; color: #002060; }
+h2 { font-size: 16px; font-weight: bold; color: #002060; border-bottom: 2px solid #002060; padding-bottom: 5px; }
+p { font-size: 12px; color: #333; }
+ul { list-style-type: disc; margin-left: 20px; }
+li { font-size: 12px; color: #333; }
+.section { margin-bottom: 15px; }
+.bold { font-weight: bold; }
+.blue { color: #002060; }
+hr { border: 1px solid #002060; margin: 10px 0; }
