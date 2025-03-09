@@ -4,6 +4,7 @@ import os
 from parser import extract_text_from_pdf, analyze_resume
 from weasyprint import HTML
 import pdfplumber
+import re
 
 app = Flask(__name__)
 
@@ -69,11 +70,13 @@ def upload_file():
 
             # Generate optimized PDF matching the reference formatting
             optimized_filename = f"optimized_{filename}"
-            optimized_file_path = os.path.join(app.config['PROCESSED_FOLDER'], optimized_filename) 
-            
+            optimized_file_path = os.path.join(app.config['PROCESSED_FOLDER'], optimized_filename)
+
             # Apply reference formatting and generate final PDF
-            matched_content = match_content_to_template(optimized_text)
-            generate_final_pdf(matched_content, optimized_file_path)
+            candidate_name, contact_info, matched_content = match_content_to_template(optimized_text)
+
+            # ✅ Ensure all required arguments are passed correctly
+            generate_final_pdf(candidate_name, contact_info, matched_content, optimized_filename)
 
             return jsonify({
                 "message": "File uploaded and processed",
@@ -90,26 +93,89 @@ def download_file(filename):
     return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 def match_content_to_template(extracted_text):
-    """Ensure proper section headers and structure without reference resume content."""
-    sections = extracted_text.split('\n\n')
+    """Extracts candidate name, contact details, and sections, while ensuring proper structuring."""
 
-    # Expected section mappings (excluding "Contact Information")
-    section_titles = [
-        "Summary", "Experience", "Education", "Skills", "Projects", "Certifications", "Activities"
-    ]
+    # Split text into lines and filter out empty ones
+    lines = [line.strip() for line in extracted_text.split("\n") if line.strip()]
 
+    candidate_name = "Candidate Name"  # Default fallback name
+    contact_info = ""  # Contact details placeholder
     matched_content = {}
-    for i, section in enumerate(sections):
-        # Skip redundant name and contact details
-        if "4567 Main Street" in section or "janna@example.com" in section:
+
+    # Define expected sections (excluding "Contact Information")
+    section_titles = {
+        "summary": "Summary",
+        "experience": "Experience",
+        "education": "Education",
+        "skills": "Skills",
+        "projects": "Projects",
+        "certifications": "Certifications",
+        "activities": "Activities"
+    }
+
+    current_section = None
+    section_data = {}
+
+    # Regular expressions for contact information
+    email_pattern = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+    phone_pattern = re.compile(r"\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}")
+    linkedin_pattern = re.compile(r"(https?://)?(www\.)?linkedin\.com/in/[a-zA-Z0-9-_/]+", re.IGNORECASE)
+    github_pattern = re.compile(r"(https?://)?(www\.)?github\.com/[a-zA-Z0-9-_/]+", re.IGNORECASE)
+
+    extracted_contact_details = {
+        "email": None,
+        "phone": None,
+        "linkedin": None,
+        "github": None
+    }
+
+    # Process each line
+    for line in lines:
+        # Extract Name (First non-empty line is assumed to be the name)
+        if candidate_name == "Candidate Name" and len(line.split()) > 1:
+            candidate_name = line.strip()
+            continue  # Skip to next line after setting the name
+
+        # Detect and extract contact details
+        if email_pattern.search(line):
+            extracted_contact_details["email"] = email_pattern.search(line).group()
+        if phone_pattern.search(line):
+            extracted_contact_details["phone"] = phone_pattern.search(line).group()
+        if linkedin_pattern.search(line):
+            extracted_contact_details["linkedin"] = linkedin_pattern.search(line).group()
+        if github_pattern.search(line):
+            extracted_contact_details["github"] = github_pattern.search(line).group()
+
+        # Identify sections
+        normalized_line = line.lower().strip().rstrip(":")  # Normalize section titles
+        if normalized_line in section_titles:
+            current_section = section_titles[normalized_line]
+            section_data[current_section] = []  # Start new section
             continue
 
-        section_title = section_titles[i] if i < len(section_titles) else f"Additional Info"
-        matched_content[section_title] = section.strip()
+        # Assign content to the detected section
+        if current_section:
+            section_data[current_section].append(line)
 
-    return matched_content
+    # Format contact details
+    contact_info_parts = []
+    if extracted_contact_details["phone"]:
+        contact_info_parts.append(f"{extracted_contact_details['phone']}")
+    if extracted_contact_details["email"]:
+        contact_info_parts.append(f"<a href='mailto:{extracted_contact_details['email']}'>{extracted_contact_details['email']}</a>")
+    if extracted_contact_details["linkedin"]:
+        contact_info_parts.append(f"<a href='{extracted_contact_details['linkedin']}' target='_blank'>LinkedIn</a>")
+    if extracted_contact_details["github"]:
+        contact_info_parts.append(f"<a href='{extracted_contact_details['github']}' target='_blank'>GitHub</a>")
 
-def generate_final_pdf(matched_content, output_filename):
+    contact_info = " | ".join(contact_info_parts) if contact_info_parts else "No contact info found."
+
+    # Convert lists into formatted text
+    for section, content_lines in section_data.items():
+        matched_content[section] = "\n".join(content_lines)
+
+    return candidate_name, contact_info, matched_content
+def generate_final_pdf(candidate_name, contact_info, matched_content, output_filename):
     """Generate a PDF using WeasyPrint with formatted sections and blue headings, ensuring a one-page layout."""
     final_output_path = os.path.abspath(os.path.join(PROCESSED_FOLDER, output_filename))
     
@@ -130,11 +196,14 @@ def generate_final_pdf(matched_content, output_filename):
                 margin-bottom: 5px;
             }}
             .contact {{
-                display: flex;
-                justify-content: space-between;
+                text-align: center;
                 font-size: 10px;
                 color: #333;
                 margin-bottom: 10px;
+            }}
+            .contact a {{
+                color: #002060;
+                text-decoration: none;
             }}
             h2 {{
                 font-size: 14px;
@@ -174,31 +243,28 @@ def generate_final_pdf(matched_content, output_filename):
     </head>
     <body>
 
-        <!-- Header with Name -->
-        <div class="header">Janna Gardner</div>
+        <!-- Candidate Name -->
+        <div class="header">{candidate_name}</div>
 
         <!-- Contact Information -->
         <div class="contact">
-            <div>4567 Main Street, Chicago, Illinois 98052</div>
-            <div>(716) 555-0100 • janna@example.com</div>
+            {contact_info}
         </div>
         <hr>
-
     """
 
-    # Add sections dynamically, ensuring they fit within one page
-    total_content_length = 0
-    max_length = 5000  # Approximate character limit to fit one page
-
+    # Add sections dynamically, ensuring no duplicate headers
     for section_title, section_content in matched_content.items():
-        if total_content_length > max_length:
-            break  # Stop adding content if we exceed one page
+        if not section_content.strip():
+            continue  # Skip empty sections
 
-        section_content = section_content[: max_length - total_content_length]  # Trim if necessary
-        total_content_length += len(section_content)
+        html_content += f"<div class='section'><h2>{section_title}</h2><hr>"
 
-        html_content += f"<div class='section'><h2>{section_title}</h2><hr>"  
         for line in section_content.split('\n'):
+            # Make sure links are clickable
+            if "http" in line or "www." in line:
+                line = re.sub(r"(https?://[^\s]+)", r'<a href="\1" target="_blank">\1</a>', line)
+
             if line.startswith('-'):
                 html_content += f"<ul><li>{line[1:].strip()}</li></ul>"
             else:
@@ -210,9 +276,8 @@ def generate_final_pdf(matched_content, output_filename):
     </html>
     """
 
-    # Save PDF with a one-page limit
-    HTML(string=html_content).write_pdf(final_output_path, stylesheets=None, presentational_hints=True)
+    # Save PDF
+    HTML(string=html_content).write_pdf(final_output_path)
     return final_output_path
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == '__main__':app.run(debug=True) 
