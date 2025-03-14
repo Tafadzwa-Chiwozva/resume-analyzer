@@ -4,8 +4,10 @@ from parser import extract_text_from_pdf, analyze_resume
 from pdf2docx import Converter
 from docx import Document
 from docx2pdf import convert
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 UPLOAD_FOLDER = "uploads"
 PROCESSED_FOLDER = "processed_resumes"
