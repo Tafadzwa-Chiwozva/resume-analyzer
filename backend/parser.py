@@ -36,26 +36,44 @@ def analyze_resume(text, job_category):
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
+            # Lower temperature → less "creativity" in rewording/omitting
+            temperature=0,
             messages=[
-                {"role": "system", "content": "You are an AI resume expert. Your job is to analyze resumes and optimize them strictly in JSON format."},
-                {"role": "user", "content": f"""
-                Here is a resume:
-                {text}
+                {
+                    "role": "system",
+                    "content": """
+        You are an AI resume expert. 
+        Your job is to analyze resumes and optimize them strictly in JSON format.
+        Do NOT remove or omit any important sections or bullet points from the original resume 
+        (e.g., Technical Skills, Leadership Experience). 
+        If you must shorten text for a one-page layout, do so minimally 
+        (but do not remove entire sections or bullet points).
+        """
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+        Here is a resume:
+        {text}
 
-                Optimize this resume for a '{job_category}' position.
+        Optimize this resume for a '{job_category}' position.
 
-                **Return the response ONLY as a valid JSON object** with these fields:
-                - "optimized_resume" (string): The fully rewritten resume in a professional format.
-                - "overall_score" (integer): A rating from 1 to 10.
-                - "strengths" (list): Key strengths of the resume.
-                - "improvements" (list): Areas that need improvement.
-                - "actionable_changes" (list): Specific action points to improve the resume.
+        **Return the response ONLY as a valid JSON object** with these fields:
+        - "optimized_resume" (string): The fully rewritten resume in a professional format, 
+        retaining ALL bullet points and sections from the original (including Technical Skills, Leadership Experience, etc.).
+        Keep it to roughly one page if possible by condensing wording, but do NOT remove sections.
+        - "overall_score" (integer): A rating from 1 to 10.
+        - "strengths" (list): Key strengths of the resume.
+        - "improvements" (list): Areas that need improvement.
+        - "actionable_changes" (list): Specific action points to improve the resume.
 
-                **IMPORTANT:**
-                - DO NOT return text explanations, only JSON.
-                - DO NOT return Markdown or code blocks.
-                - The "optimized_resume" should be a string, formatted as a real resume.
-                """}
+        **IMPORTANT:**
+        - DO NOT return text explanations, only JSON.
+        - DO NOT return Markdown or code blocks.
+        - The "optimized_resume" should be a string, formatted as a real resume 
+        with headings for 'Technical Skills', 'Leadership Experience', etc. 
+        """
+                }
             ]
         )
 

@@ -124,7 +124,15 @@ def match_content_to_template(extracted_text):
     section_titles = {
         "summary": "Summary",
         "skills": "Skills",
+        "technical skills": "Technical Skills",
+        "technical experience": "Technical Skills",   # If GPT sometimes calls it “Technical Experience”
         "experience": "Experience",
+        "leadership": "Leadership Experience",
+        "leadership roles": "Leadership Experience",
+        "leadership experience": "Leadership Experience",
+        "volunteer": "Volunteer Experience",
+        "volunteer work": "Volunteer Experience",
+        "volunteer experience": "Volunteer Experience",
         "projects": "Projects",
         "education": "Education",
         "certifications": "Certifications",
@@ -197,50 +205,66 @@ def match_content_to_template(extracted_text):
 
 def generate_final_pdf(candidate_name, contact_info, matched_content, output_filename):
     """
-    Generate a PDF using WeasyPrint with styling that matches the
-    blue-and-white resume style shown in your screenshot.
+    Generate a PDF using WeasyPrint with styling:
+      - Name in the center, large
+      - Phone & Email on the left, smaller
+      - LinkedIn & GitHub on the right, smaller
+      - The HR line that was crossing out contact info is removed.
+      - 'Education' is always listed as the first section
+      - Each line becomes a bullet point
+      - Font size is increased (body = 16px, name = 24px)
+    
     """
     final_output_path = os.path.join(PROCESSED_FOLDER, output_filename)
 
-    # Simple HTML/CSS structure with a blue color scheme (#002060)
-    # Adjust font sizes, margins, etc. as desired
+    # 1) Extract 'Education' so we can render it first
+    education_content = None
+    if "Education" in matched_content:
+        education_content = matched_content.pop("Education")
+
+    # 2) Build the HTML/CSS
     html_content = f"""
     <html>
     <head>
         <style>
             @page {{
                 size: Letter;
-                margin: 1in;
+                /* Reduce margins slightly to help fit more content on one page */
+                margin: 0.6in;
             }}
             body {{
                 font-family: Arial, sans-serif;
                 color: #333;
+                /* Increased font size */
+                font-size: 15px; 
+                line-height: 1.2em;
             }}
             .name {{
-                font-size: 22px;
+                font-size: 28px;
+                text-align: center;
                 font-weight: bold;
                 color: #002060;
-                margin-bottom: 5px;
-                text-transform: uppercase;
+                margin-bottom: 20px;
             }}
-            .contact {{
-                font-size: 10px;
-                margin-bottom: 10px;
-            }}
-            .contact a {{
-                color: #002060;
-                text-decoration: none;
+            .contact-container {{
+                width: 100%;
+                overflow: auto;
+                margin-bottom: 5px; /* Some spacing before the HR */
             }}
             .section-title {{
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: bold;
                 color: #002060;
-                margin-top: 15px;
-                margin-bottom: 2px;
+                margin-top: 10px;
+                margin-bottom: 3px;
             }}
-            .section-content {{
-                font-size: 10px;
-                line-height: 1.2em;
+            /* Use a UL for each section so each line is a bullet */
+            ul {{
+                margin-top: 0;
+                margin-bottom: 0;
+                padding-left: 20px;
+            }}
+            li {{
                 margin-bottom: 5px;
             }}
             hr {{
@@ -251,43 +275,53 @@ def generate_final_pdf(candidate_name, contact_info, matched_content, output_fil
         </style>
     </head>
     <body>
+
         <!-- Candidate Name -->
         <div class="name">{candidate_name}</div>
-        <!-- Contact Info -->
-        <div class="contact">{contact_info}</div>
+
+        <!-- Contact Info (no HR above it, so it won't overlap) -->
+        <div class="contact-container">
+            {contact_info}
+        </div>
         <hr />
     """
 
-    # Add each matched section with a heading
+    # 3) Place 'Education' first (if present)
+    if education_content and education_content.strip():
+        html_content += """
+        <div class="section">
+            <div class="section-title">Education</div>
+            <hr />
+            <ul>
+        """
+        # Split lines and remove empty ones
+        lines = [line.strip() for line in education_content.split("\n") if line.strip()]
+        for line in lines:
+            html_content += f"<li>{line}</li>"
+        html_content += "</ul></div>"
+
+    # 4) Render remaining sections in the order they're found
     for section_title, content in matched_content.items():
         if not content.strip():
-            continue  # skip empty sections
-
+            continue  # Skip empty sections
         html_content += f"""
         <div class="section">
             <div class="section-title">{section_title}</div>
             <hr />
-            <div class="section-content">
+            <ul>
         """
-
-        # For each line in the content, you can decide how to handle bullet points, etc.
-        lines = content.split("\n")
+        lines = [line.strip() for line in content.split("\n") if line.strip()]
         for line in lines:
-            # If a line starts with '-', treat it like a bullet
-            if line.strip().startswith("-"):
-                html_content += f"<p style='margin-left: 10px;'>• {line[1:].strip()}</p>"
-            else:
-                html_content += f"<p>{line}</p>"
+            html_content += f"<li>{line}</li>"
+        html_content += "</ul></div>"
 
-        html_content += "</div></div>"
-
-    # Close out HTML
+    # Close the HTML
     html_content += """
     </body>
     </html>
     """
 
-    # Write PDF
+    # 5) Write PDF with WeasyPrint
     HTML(string=html_content).write_pdf(final_output_path)
     return final_output_path
 
