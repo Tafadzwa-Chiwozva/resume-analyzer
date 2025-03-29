@@ -4,8 +4,14 @@ import os
 import re
 from parser import extract_text_from_pdf, analyze_resume
 from weasyprint import HTML
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+
+@app.route('/')
+def home():
+    return "Resume Analyzer Backend is Running!"
 
 # Define folder paths
 UPLOAD_FOLDER = 'data/uploads'
@@ -15,10 +21,6 @@ REFERENCE_FOLDER = 'data/ref_resume'  # If you want to store a reference resume
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(REFERENCE_FOLDER, exist_ok=True)
-
-@app.route('/')
-def home():
-    return "Resume Analyzer Backend is Running!"
 
 @app.route('/upload_template', methods=['POST'])
 def upload_template():
@@ -90,7 +92,8 @@ def upload_file():
             # Return JSON with the same link
             return jsonify({
                 "message": f"File uploaded and processed successfully. Download your optimized resume at: {download_link}",
-                "download_url": download_link
+                "download_url": download_link,
+                "ai_feedback": feedback  # <--- include the entire feedback dict
             }), 200
         else:
             return jsonify({"error": "Failed to optimize resume"}), 500
@@ -212,7 +215,7 @@ def generate_final_pdf(candidate_name, contact_info, matched_content, output_fil
       - The HR line that was crossing out contact info is removed.
       - 'Education' is always listed as the first section
       - Each line becomes a bullet point
-      - Font size is increased (body = 16px, name = 24px)
+      
     
     """
     final_output_path = os.path.join(PROCESSED_FOLDER, output_filename)

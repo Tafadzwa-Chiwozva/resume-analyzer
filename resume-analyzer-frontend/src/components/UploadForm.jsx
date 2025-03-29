@@ -1,5 +1,6 @@
+// UploadForm.jsx
 import { useState } from "react";
-import { uploadResume } from "../api/resumeApi"; // Import API call
+import { uploadResume } from "../api/resumeApi";
 
 const UploadForm = ({ onUploadSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -24,10 +25,12 @@ const UploadForm = ({ onUploadSuccess }) => {
     const result = await uploadResume(selectedFile, jobCategory);
 
     setLoading(false);
+
     if (result.error) {
       setError(result.error);
     } else {
-      onUploadSuccess(result); // Send AI feedback data to parent component
+      // result should include: { message, download_url, ... } from the backend
+      onUploadSuccess(result);
     }
   };
 

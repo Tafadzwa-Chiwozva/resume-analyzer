@@ -5,8 +5,15 @@ from parser import extract_text_from_pdf, analyze_resume
 from weasyprint import HTML
 import pdfplumber
 import re
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app)
+
+@app.route('/')
+def home():
+    return "Resume Analyzer Backend is Running!"
 
 # Define folder paths
 UPLOAD_FOLDER = '../data/uploads'
