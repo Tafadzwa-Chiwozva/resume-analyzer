@@ -1,5 +1,0 @@
-Flask
-openai==0.28.0
-pdfplumber
-spacy
-fpdf
