@@ -1,58 +1,64 @@
 import { useState } from "react";
 import UploadForm from "./components/UploadForm";
 import ResumeFeedback from "./components/ResumeFeedback";
-import ProcessedResume from "./components/ProcessedResume";
+import Gears from "./components/Gears";
 import { downloadOptimizedResume } from "./api/resumeApi";
 
 function App() {
   const [resumeData, setResumeData] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // This function is passed to UploadForm and called when the upload is successful
+  const handleUploadStart = () => {
+    setIsProcessing(true);
+  };
+
   const handleUploadSuccess = (result) => {
-    // 'result' should be the JSON from Flask, e.g.:
-    // {
-    //   "message": "...",
-    //   "download_url": "/download/optimized_sample_resume.pdf",
-    //   "ai_feedback": { ... },
-    //   ...
-    // }
+    setIsProcessing(false);
     setResumeData(result);
   };
 
   const handleDownloadClick = () => {
     if (resumeData && resumeData.download_url) {
-      // Calls our function from resumeApi.js
       downloadOptimizedResume(resumeData.download_url);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-5">
-      <h1 className="text-center text-2xl font-bold mb-4">AI Resume Analyzer</h1>
-
-      {/* Upload Form */}
-      <UploadForm onUploadSuccess={handleUploadSuccess} />
-
-      {/* If we have resumeData from the backend, show the feedback & download button */}
-      {resumeData && (
-        <div className="mt-4 p-4 bg-gray-800 rounded">
-          {/* If you have AI feedback fields in resumeData, pass them to ResumeFeedback */}
-          
-          {resumeData.ai_feedback && (
-            <ResumeFeedback data={resumeData.ai_feedback} />
-          )}
-        
-          
-
-          {/* Download button */}
-          <button
-            onClick={handleDownloadClick}
-            className="mt-4 bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded"
-          >
-            Download Optimized Resume
-          </button>
+    <div className="min-h-screen w-full flex flex-col items-center justify-start py-12 px-4">
+      <Gears isProcessing={isProcessing} />
+      
+      <div className="w-full max-w-2xl relative z-10">
+        <div className="title-container mb-12">
+          <div className="energy-streak animate-energy-streak" />
+          <h1 className="text-center text-4xl font-bold text-yellow-400 glow-text relative z-10">
+            AI Resume Optimizer
+          </h1>
         </div>
-      )}
+
+        {/* Upload Form */}
+        <div className="mb-8">
+          <UploadForm 
+            onUploadSuccess={handleUploadSuccess}
+            onUploadStart={handleUploadStart}
+          />
+        </div>
+
+        {/* If we have resumeData from the backend, show the feedback & download button */}
+        {resumeData && (
+          <div className="animate-border-glow p-6 bg-black border-2 border-yellow-400 rounded-lg shadow-lg shadow-yellow-400/20">
+            {resumeData.ai_feedback && (
+              <ResumeFeedback data={resumeData.ai_feedback} />
+            )}
+
+            <button
+              onClick={handleDownloadClick}
+              className="mt-8 bg-transparent hover:bg-yellow-400 border-2 border-yellow-400 text-yellow-400 hover:text-black px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-200 w-full"
+            >
+              Download Optimized Resume
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

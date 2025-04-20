@@ -1,5 +1,5 @@
 // resumeApi.js
-const API_BASE_URL = "http://127.0.0.1:5000"; // Or wherever your Flask backend runs
+const API_BASE_URL = "https://resume-analyzer-jj0k.onrender.com"; // Production URL on Render
 
 export const uploadResume = async (file, jobCategory) => {
   try {
