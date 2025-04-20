@@ -2,14 +2,16 @@
 import { useState } from "react";
 import { uploadResume } from "../api/resumeApi";
 
-const UploadForm = ({ onUploadSuccess }) => {
+const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [jobRole, setJobRole] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
+    setError(null); // Clear any previous errors
   };
 
   const handleSubmit = async (event) => {
@@ -26,15 +28,25 @@ const UploadForm = ({ onUploadSuccess }) => {
 
     setLoading(true);
     setError(null);
+    setUploadStatus("Uploading resume...");
+    onUploadStart();
 
-    const result = await uploadResume(selectedFile, jobRole);
+    try {
+      const result = await uploadResume(selectedFile, jobRole);
 
-    setLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      onUploadSuccess(result);
+      if (result.error) {
+        setError(result.error);
+        setUploadStatus(result.details || "Upload failed");
+        onUploadSuccess(null); // Stop the animation if there's an error
+      } else {
+        setUploadStatus("Upload successful!");
+        onUploadSuccess(result);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      onUploadSuccess(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,24 +63,35 @@ const UploadForm = ({ onUploadSuccess }) => {
               onChange={handleFileChange} 
               className="content-text w-full p-3 bg-black border-2 border-yellow-400/50 rounded-lg text-yellow-400 focus:border-yellow-400 focus:outline-none hover:border-yellow-400 transition-colors duration-200" 
               accept=".pdf,.doc,.docx"
+              disabled={loading}
             />
           </div>
           <input
             type="text"
             value={jobRole}
-            onChange={(e) => setJobRole(e.target.value)}
+            onChange={(e) => {
+              setJobRole(e.target.value);
+              setError(null); // Clear any previous errors
+            }}
             placeholder="Enter target job role (e.g., Senior Software Engineer, Product Manager)"
             className="content-text p-3 bg-black border-2 border-yellow-400/50 rounded-lg text-yellow-400 placeholder-yellow-400/40 focus:border-yellow-400 focus:outline-none hover:border-yellow-400 transition-colors duration-200"
+            disabled={loading}
           />
           <button
             type="submit"
             className="content-text bg-transparent hover:bg-yellow-400 border-2 border-yellow-400 text-yellow-400 hover:text-black p-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-yellow-400/50 mt-2"
             disabled={loading}
           >
-            {loading ? "Uploading..." : "Upload Resume"}
+            {loading ? uploadStatus : "Upload Resume"}
           </button>
           {error && (
-            <p className="text-red-500 mt-2 content-text text-center">{error}</p>
+            <div className="text-red-500 mt-2 content-text text-center">
+              <p className="font-bold">{error}</p>
+              {uploadStatus && <p className="text-sm mt-1">{uploadStatus}</p>}
+            </div>
+          )}
+          {!error && uploadStatus && (
+            <p className="text-yellow-400 mt-2 content-text text-center">{uploadStatus}</p>
           )}
         </form>
       </div>
