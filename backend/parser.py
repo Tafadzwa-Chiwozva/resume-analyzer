@@ -2,8 +2,9 @@ import json
 import openai
 import pdfplumber
 import spacy
+import os
 
-openai.api_key = "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"
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")

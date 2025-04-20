@@ -329,4 +329,4 @@ def generate_final_pdf(candidate_name, contact_info, matched_content, output_fil
     return final_output_path
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000)
