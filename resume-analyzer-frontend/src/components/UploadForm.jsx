@@ -36,7 +36,7 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
 
       if (result.error) {
         setError(result.error);
-        setUploadStatus(result.details || "Upload failed");
+        setUploadStatus("Upload failed");
         onUploadSuccess(null); // Stop the animation if there's an error
       } else {
         setUploadStatus("Upload successful!");
@@ -87,11 +87,8 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
           {error && (
             <div className="text-red-500 mt-2 content-text text-center">
               <p className="font-bold">{error}</p>
-              {uploadStatus && <p className="text-sm mt-1">{uploadStatus}</p>}
+              {result?.details && <p className="text-sm mt-1">{result.details}</p>}
             </div>
-          )}
-          {!error && uploadStatus && (
-            <p className="text-yellow-400 mt-2 content-text text-center">{uploadStatus}</p>
           )}
         </form>
       </div>
