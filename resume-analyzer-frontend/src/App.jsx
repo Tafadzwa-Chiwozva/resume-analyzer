@@ -33,6 +33,13 @@ function App() {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start py-12 px-4">
+      {/* ResuMate Logo */}
+      <div className="absolute top-6 left-8 z-20">
+        <h2 className="text-2xl font-bold text-yellow-400 glow-text tracking-wider">
+          ResuMate
+        </h2>
+      </div>
+
       <Gears isProcessing={isProcessing} />
       
       <div className="w-full max-w-2xl relative z-10">
