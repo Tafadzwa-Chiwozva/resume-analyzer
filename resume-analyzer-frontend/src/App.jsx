@@ -2,6 +2,7 @@ import { useState } from "react";
 import UploadForm from "./components/UploadForm";
 import ResumeFeedback from "./components/ResumeFeedback";
 import Gears from "./components/Gears";
+import LoadingText from "./components/LoadingText";
 import { downloadOptimizedResume } from "./api/resumeApi";
 
 function App() {
@@ -14,7 +15,14 @@ function App() {
 
   const handleUploadSuccess = (result) => {
     setIsProcessing(false);
-    setResumeData(result);
+    if (result && result.ai_feedback) {
+      setResumeData({
+        ...result.ai_feedback,
+        download_url: result.download_url
+      });
+    } else {
+      setResumeData(null);
+    }
   };
 
   const handleDownloadClick = () => {
@@ -43,12 +51,13 @@ function App() {
           />
         </div>
 
+        {/* Loading Text */}
+        <LoadingText isVisible={isProcessing} />
+
         {/* If we have resumeData from the backend, show the feedback & download button */}
-        {resumeData && (
+        {resumeData && resumeData.overall_score && (
           <div className="animate-border-glow p-6 bg-black border-2 border-yellow-400 rounded-lg shadow-lg shadow-yellow-400/20">
-            {resumeData.ai_feedback && (
-              <ResumeFeedback data={resumeData.ai_feedback} />
-            )}
+            <ResumeFeedback data={resumeData} />
 
             <button
               onClick={handleDownloadClick}
