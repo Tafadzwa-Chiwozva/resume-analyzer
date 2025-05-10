@@ -7,11 +7,13 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
   const [jobRole, setJobRole] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [errorDetails, setErrorDetails] = useState(null);
   const [uploadStatus, setUploadStatus] = useState("");
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
-    setError(null); // Clear any previous errors
+    setError(null);
+    setErrorDetails(null);
   };
 
   const handleSubmit = async (event) => {
@@ -28,6 +30,7 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
 
     setLoading(true);
     setError(null);
+    setErrorDetails(null);
     setUploadStatus("Uploading resume...");
     onUploadStart();
 
@@ -36,6 +39,7 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
 
       if (result.error) {
         setError(result.error);
+        setErrorDetails(result.details);
         setUploadStatus("Upload failed");
         onUploadSuccess(null); // Stop the animation if there's an error
       } else {
@@ -44,6 +48,7 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
+      setErrorDetails("The server might be starting up or under heavy load.");
       onUploadSuccess(null);
     } finally {
       setLoading(false);
@@ -71,7 +76,8 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
             value={jobRole}
             onChange={(e) => {
               setJobRole(e.target.value);
-              setError(null); // Clear any previous errors
+              setError(null);
+              setErrorDetails(null);
             }}
             placeholder="Enter target job role (e.g., Senior Software Engineer, Product Manager)"
             className="content-text p-3 bg-black border-2 border-yellow-400/50 rounded-lg text-yellow-400 placeholder-yellow-400/40 focus:border-yellow-400 focus:outline-none hover:border-yellow-400 transition-colors duration-200"
@@ -87,7 +93,7 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
           {error && (
             <div className="text-red-500 mt-2 content-text text-center">
               <p className="font-bold">{error}</p>
-              {result?.details && <p className="text-sm mt-1">{result.details}</p>}
+              {errorDetails && <p className="text-sm mt-1">{errorDetails}</p>}
             </div>
           )}
         </form>

@@ -1,7 +1,10 @@
 // resumeApi.js
-const API_BASE_URL = "https://resume-analyzer-jj0k.onrender.com"; // Production URL on Render
+import { getEnvironment } from '../config/environment';
 
 const TIMEOUT_DURATION = 120000; // 2 minutes timeout
+
+// Get the API URL based on the environment
+const API_BASE_URL = getEnvironment().API_URL;
 
 export const uploadResume = async (file, jobCategory) => {
   try {
