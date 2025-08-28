@@ -10,6 +10,14 @@ export const uploadResume = async (file, jobCategory) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("job_category", jobCategory);
+    
+    // Debug: Log what's being sent
+    console.log("🔍 Debug - File being sent:", file);
+    console.log("🔍 Debug - Job category:", jobCategory);
+    console.log("🔍 Debug - FormData entries:");
+    for (let [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value);
+    }
 
     // Create AbortController for timeout
     const controller = new AbortController();
