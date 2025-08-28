@@ -1,5 +1,5 @@
 // resumeApi.js
-const API_BASE_URL = "https://resume-analyzer-jj0k.onrender.com"; // Production URL on Render
+const API_BASE_URL = "http://localhost:10000"; // Local development URL
 
 const TIMEOUT_DURATION = 120000; // 2 minutes timeout
 

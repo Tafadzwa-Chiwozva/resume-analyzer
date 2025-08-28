@@ -3,8 +3,13 @@ import openai
 import pdfplumber
 import spacy
 import os
+from dotenv import load_dotenv
 
+# Load environment variables from key.env file in root directory
+load_dotenv('../key.env')
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
 
 # Load the English NLP model
 nlp = spacy.load("en_core_web_sm")

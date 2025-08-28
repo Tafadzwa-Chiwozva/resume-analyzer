@@ -2,9 +2,16 @@ from flask import Flask, request, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 import os
 import re
+from dotenv import load_dotenv
 from parser import extract_text_from_pdf, analyze_resume
 from weasyprint import HTML
 from flask_cors import CORS
+
+# Load environment variables from key.env file in root directory
+load_dotenv('../key.env')
+print(f"🔍 Environment check - OPENAI_API_KEY loaded: {'Yes' if os.getenv('OPENAI_API_KEY') else 'No'}")
+print(f"🔍 Current working directory: {os.getcwd()}")
+print(f"🔍 .env file path: {os.path.join(os.getcwd(), '../key.env')}")
 
 app = Flask(__name__)
 CORS(app)
@@ -45,29 +52,50 @@ def upload_file():
     Upload and process a user resume, applying an AI-optimized rewrite and
     final PDF formatting (blue/white style).
     """
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and file.filename.lower().endswith('.pdf'):
+    try:
+        print("🔍 Starting resume upload process...")
+        
+        if 'file' not in request.files:
+            print("❌ No file in request")
+            return jsonify({"error": "No file part"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            print("❌ No selected file")
+            return jsonify({"error": "No selected file"}), 400
+        
+        if not file.filename.lower().endswith('.pdf'):
+            return jsonify({"error": "Invalid file format. Only PDFs are allowed."}), 400
+            
+        print(f"📁 Processing file: {file.filename}")
         filename = secure_filename(file.filename)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
+        print(f"✅ File saved to: {file_path}")
 
         # Extract text from the uploaded PDF
+        print("📖 Extracting text from PDF...")
         resume_text = extract_text_from_pdf(file_path)
+        print(f"✅ Extracted {len(resume_text)} characters")
 
         # (Optional) check for a job_category in the POST form data
         job_category = request.form.get('job_category', 'General')
+        print(f"🎯 Job category: {job_category}")
+
+        # Check OpenAI API key
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("❌ OPENAI_API_KEY not found in environment")
+            return jsonify({"error": "OpenAI API key not configured"}), 500
+        print(f"🔑 API key found: {api_key[:10]}...")
 
         # 1) Send the resume text to OpenAI for optimization
+        print("🤖 Calling OpenAI API...")
         feedback = analyze_resume(resume_text, job_category)
 
         # 2) If successful, get the optimized text
         if "optimized_resume" in feedback:
+            print("✅ OpenAI API call successful")
             optimized_text = feedback["optimized_resume"]
 
             # Generate a new PDF that visually matches your desired style
@@ -96,9 +124,14 @@ def upload_file():
                 "ai_feedback": feedback  # <--- include the entire feedback dict
             }), 200
         else:
+            print(f"❌ OpenAI API failed: {feedback}")
             return jsonify({"error": "Failed to optimize resume"}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Only PDFs are allowed."}), 400
+            
+    except Exception as e:
+        print(f"❌ Error in upload_file: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):

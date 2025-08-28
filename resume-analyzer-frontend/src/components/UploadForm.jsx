@@ -87,7 +87,6 @@ const UploadForm = ({ onUploadSuccess, onUploadStart }) => {
           {error && (
             <div className="text-red-500 mt-2 content-text text-center">
               <p className="font-bold">{error}</p>
-              {result?.details && <p className="text-sm mt-1">{result.details}</p>}
             </div>
           )}
         </form>

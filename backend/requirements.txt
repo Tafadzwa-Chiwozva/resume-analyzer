@@ -46,6 +46,7 @@ multidict==6.1.0
 murmurhash==1.0.12
 numpy==2.2.3
 openai==0.28.0
+python-dotenv==1.0.0
 opencv-python-headless==4.11.0.86
 packaging==24.2
 pdf2docx==0.5.8
