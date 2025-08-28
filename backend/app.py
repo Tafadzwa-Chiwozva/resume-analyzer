@@ -55,6 +55,11 @@ def upload_file():
     try:
         print("🔍 Starting resume upload process...")
         
+        # Debug: Log what's being received
+        print(f"🔍 Debug - Request files: {list(request.files.keys())}")
+        print(f"🔍 Debug - Request form: {list(request.form.keys())}")
+        print(f"🔍 Debug - Request headers: {dict(request.headers)}")
+        
         if 'file' not in request.files:
             print("❌ No file in request")
             return jsonify({"error": "No file part"}), 400
